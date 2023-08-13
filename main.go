@@ -17,17 +17,19 @@ func main() {
 		log.Fatal(err)
 	}
 
-	cardHandler := card.Handler{DBClient: client}
-
 	router := gin.Default()
+	v1 := router.Group("api/v1")
+	{
+		cards := v1.Group("/cards")
+		{
+			cardHandler := card.Handler{DBClient: client}
+			cards.POST("", cardHandler.Create)
+			cards.PUT(":id", cardHandler.Update)
+			cards.DELETE(":id", cardHandler.Delete)
+		}
 
-	// Routes
-	router.GET("/create", cardHandler.Create)
-
-	err = router.Run(":8080")
-	if err != nil {
-		// TODO: handle error
 	}
+	log.Fatal(router.Run(":8080"))
 }
 
 func connectDB() (*mongo.Client, error) {

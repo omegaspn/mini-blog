@@ -9,10 +9,9 @@ run mongo on your machine
 
 checklist
 - implement auth
-- create card
-- update card
-- delete card
 - enhance model
 - re-structure project
 - add comments
-- clear todo
+- generalize err response
+- update readme
+- integrate with swagger
