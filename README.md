@@ -1,6 +1,5 @@
 # mini blog
 
-
 ### setup mongo
 1. pull mongo 4.4
 `docker pull mongo:4.4`
@@ -11,9 +10,4 @@
 ### how to run
 1. install go version 1.19
 2. run command `go run main.go`
-
-checklist
-- add comments
-- generalize err response
-- update readme
-- integrate with swagger
+3. open swagger to see api documentation (optional) `http://localhost:8080/swagger/index.html`

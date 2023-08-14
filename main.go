@@ -40,11 +40,11 @@ func main() {
 		cards := v1.Group("/cards")
 		{
 			cardHandler := card.Handler{DBClient: client}
+			// Routes to manage cards
 			cards.POST("", middlewares.AuthMiddleware(), cardHandler.Create)
 			cards.PUT(":id", middlewares.AuthMiddleware(), cardHandler.Update)
 			cards.DELETE(":id", middlewares.AuthMiddleware(), cardHandler.Delete)
 		}
-
 	}
 	log.Fatal(router.Run(":8080"))
 }
