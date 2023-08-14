@@ -18,10 +18,11 @@ type Handler struct {
 	DBClient *mongo.Client
 }
 
-func (ch *Handler) verifyAuthor(ctx context.Context, author string, oid primitive.ObjectID) error {
-	cards := ch.DBClient.Database("blog").Collection("cards")
+var blogDb = "blog"
+var cardCollection = "cards"
 
-	card := cards.FindOne(ctx, bson.M{"_id": oid})
+func (ch *Handler) verifyAuthor(ctx context.Context, author string, oid primitive.ObjectID) error {
+	card := ch.DBClient.Database(blogDb).Collection(cardCollection).FindOne(ctx, bson.M{"_id": oid})
 	result := model.Card{}
 	err := card.Decode(&result)
 	if err != nil {
@@ -44,6 +45,17 @@ func (ch *Handler) validateCardCategory(req CreateOrUpdateCardRequest) bool {
 	return valid
 }
 
+// @BasePath /api/v1
+
+// PingExample godoc
+// @Summary ping example
+// @Schemes
+// @Description do ping
+// @Tags example
+// @Accept json
+// @Produce json
+// @Success 200 {string} Helloworld
+// @Router /example/helloworld [get]
 func (ch *Handler) Create(gctx *gin.Context) {
 	ctx := gctx.Request.Context()
 
@@ -66,9 +78,7 @@ func (ch *Handler) Create(gctx *gin.Context) {
 	}
 
 	author := gctx.GetString("author")
-
-	cards := ch.DBClient.Database("blog").Collection("cards")
-	result, err := cards.InsertOne(ctx, model.Card{
+	result, err := ch.DBClient.Database(blogDb).Collection(cardCollection).InsertOne(ctx, model.Card{
 		Name:      req.Name,
 		Status:    req.Status,
 		Content:   req.Content,
@@ -111,7 +121,6 @@ func (ch *Handler) Update(gctx *gin.Context) {
 
 	var key = "id"
 	cardId := gctx.Param(key)
-
 	if cardId == "" {
 		gctx.JSON(http.StatusBadRequest, gin.H{"error": "card oid to update can't be empty"})
 		return
@@ -122,6 +131,7 @@ func (ch *Handler) Update(gctx *gin.Context) {
 		gctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 	}
 
+	// Verify only author can perform action
 	err = ch.verifyAuthor(ctx, gctx.GetString("author"), oid)
 	if err != nil {
 		gctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -136,8 +146,7 @@ func (ch *Handler) Update(gctx *gin.Context) {
 		"updated_at": time.Now(),
 	}}}
 
-	cards := ch.DBClient.Database("blog").Collection("cards")
-	_, err = cards.UpdateOne(ctx, bson.M{"_id": oid}, updateCmd)
+	_, err = ch.DBClient.Database(blogDb).Collection(cardCollection).UpdateOne(ctx, bson.M{"_id": oid}, updateCmd)
 	if err != nil {
 		gctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -153,7 +162,6 @@ func (ch *Handler) Delete(gctx *gin.Context) {
 
 	var key = "id"
 	cardId := gctx.Param(key)
-
 	if cardId == "" {
 		gctx.JSON(http.StatusBadRequest, gin.H{"error": "card oid to delete can't be empty"})
 		return
@@ -165,14 +173,14 @@ func (ch *Handler) Delete(gctx *gin.Context) {
 		return
 	}
 
-	cards := ch.DBClient.Database("blog").Collection("cards")
+	// Verify only author can perform action
 	err = ch.verifyAuthor(ctx, gctx.GetString("author"), oid)
 	if err != nil {
 		gctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	ret, err := cards.DeleteOne(context.Background(), bson.M{"_id": oid})
+	ret, err := ch.DBClient.Database(blogDb).Collection(cardCollection).DeleteOne(context.Background(), bson.M{"_id": oid})
 	if ret.DeletedCount == 0 {
 		gctx.JSON(http.StatusInternalServerError, gin.H{"error": "no items to delete"})
 		return

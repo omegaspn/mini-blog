@@ -8,8 +8,14 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/omegaspn/mini-blog/internal/apis/card"
 	"github.com/omegaspn/mini-blog/internal/apis/middlewares"
+
+	docs "github.com/omegaspn/mini-blog/docs"
+
+	ginSwagger "github.com/swaggo/gin-swagger"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+
+	"github.com/swaggo/files"
 )
 
 // Config mongo uri here
@@ -23,6 +29,8 @@ func main() {
 	}
 
 	router := gin.Default()
+	docs.SwaggerInfo.BasePath = "/api/v1"
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	v1 := router.Group("api/v1")
 	{
