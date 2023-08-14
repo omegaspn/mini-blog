@@ -1,19 +1,162 @@
+definitions:
+  card.CreateCardResponse:
+    properties:
+      id: {}
+      status:
+        type: string
+    type: object
+  card.CreateOrUpdateCardRequest:
+    properties:
+      category:
+        $ref: '#/definitions/model.CardCategory'
+      content:
+        type: string
+      name:
+        type: string
+      status:
+        $ref: '#/definitions/model.CardStatus'
+    required:
+    - category
+    - content
+    - name
+    - status
+    type: object
+  card.DeleteCardResponse:
+    properties:
+      id:
+        type: string
+      status:
+        type: string
+    type: object
+  card.UpdateCardResponse:
+    properties:
+      status:
+        type: string
+    type: object
+  model.CardCategory:
+    enum:
+    - PHYSICS
+    - TECHNOLOGY
+    - CHEMISTRY
+    - SOCIOLOGY
+    type: string
+    x-enum-varnames:
+    - CardCategoryPhy
+    - CardCategoryTech
+    - CardCategoryChem
+    - CardCategorySoc
+  model.CardStatus:
+    enum:
+    - GREEN
+    - VIOLET
+    - BLUE
+    - ORANGE
+    type: string
+    x-enum-varnames:
+    - CardStatusGreen
+    - CardStatusViolet
+    - CardStatusBlue
+    - CardStatusOrange
 info:
   contact: {}
 paths:
-  /example/helloworld:
-    get:
+  /cards:
+    post:
       consumes:
       - application/json
-      description: do ping
+      parameters:
+      - description: Bearer <token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Create request body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/card.CreateOrUpdateCardRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            type: string
-      summary: ping example
+            $ref: '#/definitions/card.CreateCardResponse'
+      security:
+      - ApiKeyAuth: []
       tags:
-      - example
+      - cards
+  /cards/{id}:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: Bearer <token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Object ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/card.DeleteCardResponse'
+      tags:
+      - cards
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Bearer <token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Update request body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/card.CreateOrUpdateCardRequest'
+      - description: Object ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/card.UpdateCardResponse'
+      tags:
+      - cards
+  /token/{author}:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: author
+        in: path
+        name: author
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      security:
+      - ApiKeyAuth: []
+      tags:
+      - token
 swagger: "2.0"

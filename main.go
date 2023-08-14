@@ -3,13 +3,12 @@ package main
 import (
 	"context"
 	"log"
-	"net/http"
 
 	"github.com/gin-gonic/gin"
+	docs "github.com/omegaspn/mini-blog/docs"
 	"github.com/omegaspn/mini-blog/internal/apis/card"
 	"github.com/omegaspn/mini-blog/internal/apis/middlewares"
-
-	docs "github.com/omegaspn/mini-blog/docs"
+	"github.com/omegaspn/mini-blog/internal/apis/token"
 
 	ginSwagger "github.com/swaggo/gin-swagger"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -34,16 +33,9 @@ func main() {
 
 	v1 := router.Group("api/v1")
 	{
+		tokenHandler := token.Handler{DBClient: client}
 		// Route to generate and return JWT token
-		v1.GET("/token/:author", func(c *gin.Context) {
-			author := c.Param("author")
-			token, err := middlewares.GenerateToken(author)
-			if err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Error generating token"})
-				return
-			}
-			c.String(http.StatusOK, token)
-		})
+		v1.GET("/token/:author", tokenHandler.GenerateToken)
 
 		cards := v1.Group("/cards")
 		{

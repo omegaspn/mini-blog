@@ -47,15 +47,15 @@ func (ch *Handler) validateCardCategory(req CreateOrUpdateCardRequest) bool {
 
 // @BasePath /api/v1
 
-// PingExample godoc
-// @Summary ping example
-// @Schemes
-// @Description do ping
-// @Tags example
+// Create @Summary to create a card
+// @Tags cards
+// @Security ApiKeyAuth
 // @Accept json
 // @Produce json
-// @Success 200 {string} Helloworld
-// @Router /example/helloworld [get]
+// @Param Authorization header string true "Bearer <token>"
+// @Param request body card.CreateOrUpdateCardRequest true "Create request body"
+// @Success 200 {object} card.CreateCardResponse
+// @Router /cards [post]
 func (ch *Handler) Create(gctx *gin.Context) {
 	ctx := gctx.Request.Context()
 
@@ -98,6 +98,15 @@ func (ch *Handler) Create(gctx *gin.Context) {
 	})
 }
 
+// Update @Summary to update a card
+// @Param Authorization header string true "Bearer <token>"
+// @Param request body card.CreateOrUpdateCardRequest true "Update request body"
+// @Param id path string true "Object ID"
+// @Tags cards
+// @Accept json
+// @Produce json
+// @Success 200 {object} card.UpdateCardResponse
+// @Router /cards/{id} [put]
 func (ch *Handler) Update(gctx *gin.Context) {
 	ctx := gctx.Request.Context()
 
@@ -157,6 +166,14 @@ func (ch *Handler) Update(gctx *gin.Context) {
 	})
 }
 
+// Delete @Summary Delete a card
+// @Tags cards
+// @Accept json
+// @Produce json
+// @Param Authorization header string true "Bearer <token>"
+// @Param id path string true "Object ID"
+// @Success 200 {object} card.DeleteCardResponse
+// @Router /cards/{id} [delete]
 func (ch *Handler) Delete(gctx *gin.Context) {
 	ctx := gctx.Request.Context()
 

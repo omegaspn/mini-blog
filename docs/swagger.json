@@ -4,9 +4,13 @@
         "contact": {}
     },
     "paths": {
-        "/example/helloworld": {
-            "get": {
-                "description": "do ping",
+        "/cards": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "consumes": [
                     "application/json"
                 ],
@@ -14,18 +18,231 @@
                     "application/json"
                 ],
                 "tags": [
-                    "example"
+                    "cards"
                 ],
-                "summary": "ping example",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer \u003ctoken\u003e",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "Create request body",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/card.CreateOrUpdateCardRequest"
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/card.CreateCardResponse"
                         }
                     }
                 }
             }
+        },
+        "/cards/{id}": {
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cards"
+                ],
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer \u003ctoken\u003e",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "Update request body",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/card.CreateOrUpdateCardRequest"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "Object ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/card.UpdateCardResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cards"
+                ],
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer \u003ctoken\u003e",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Object ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/card.DeleteCardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/token/{author}": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "token"
+                ],
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "author",
+                        "name": "author",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "card.CreateCardResponse": {
+            "type": "object",
+            "properties": {
+                "id": {},
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "card.CreateOrUpdateCardRequest": {
+            "type": "object",
+            "required": [
+                "category",
+                "content",
+                "name",
+                "status"
+            ],
+            "properties": {
+                "category": {
+                    "$ref": "#/definitions/model.CardCategory"
+                },
+                "content": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/model.CardStatus"
+                }
+            }
+        },
+        "card.DeleteCardResponse": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "card.UpdateCardResponse": {
+            "type": "object",
+            "properties": {
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.CardCategory": {
+            "type": "string",
+            "enum": [
+                "PHYSICS",
+                "TECHNOLOGY",
+                "CHEMISTRY",
+                "SOCIOLOGY"
+            ],
+            "x-enum-varnames": [
+                "CardCategoryPhy",
+                "CardCategoryTech",
+                "CardCategoryChem",
+                "CardCategorySoc"
+            ]
+        },
+        "model.CardStatus": {
+            "type": "string",
+            "enum": [
+                "GREEN",
+                "VIOLET",
+                "BLUE",
+                "ORANGE"
+            ],
+            "x-enum-varnames": [
+                "CardStatusGreen",
+                "CardStatusViolet",
+                "CardStatusBlue",
+                "CardStatusOrange"
+            ]
         }
     }
 }
