@@ -13,8 +13,6 @@
 2. run command `go run main.go`
 
 checklist
-- enhance model
-- re-structure project
 - add comments
 - generalize err response
 - update readme
