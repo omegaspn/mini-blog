@@ -3,12 +3,14 @@ package card
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/omegaspn/mini-blog/internal/domain/model"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -16,39 +18,94 @@ type Handler struct {
 	DBClient *mongo.Client
 }
 
+func (ch *Handler) verifyAuthor(ctx context.Context, author string, oid primitive.ObjectID) error {
+	cards := ch.DBClient.Database("blog").Collection("cards")
+
+	card := cards.FindOne(ctx, bson.M{"_id": oid})
+	result := model.Card{}
+	err := card.Decode(&result)
+	if err != nil {
+		return err
+	}
+
+	if result.Author != author {
+		return errors.New(fmt.Sprintf("author: %s can't manage this card", author))
+	}
+	return nil
+}
+
+func (ch *Handler) validateCardStatus(req CreateOrUpdateCardRequest) bool {
+	_, valid := model.ValidCardStatuses[req.Status]
+	return valid
+}
+
+func (ch *Handler) validateCardCategory(req CreateOrUpdateCardRequest) bool {
+	_, valid := model.ValidCardCategories[req.Category]
+	return valid
+}
+
 func (ch *Handler) Create(gctx *gin.Context) {
-	var req CreateCardRequest
+	ctx := gctx.Request.Context()
+
+	var req CreateOrUpdateCardRequest
 	if err := gctx.ShouldBindJSON(&req); err != nil {
-		_ = gctx.Error(errors.New("error from map req"))
+		gctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	c := model.Card{
+	valid := ch.validateCardStatus(req)
+	if !valid {
+		gctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid card status"})
+		return
+	}
+
+	valid = ch.validateCardCategory(req)
+	if !valid {
+		gctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid card category"})
+		return
+	}
+
+	author := gctx.GetString("author")
+
+	cards := ch.DBClient.Database("blog").Collection("cards")
+	result, err := cards.InsertOne(ctx, model.Card{
 		Name:      req.Name,
 		Status:    req.Status,
 		Content:   req.Content,
 		Category:  req.Category,
-		Author:    req.Author,
+		Author:    author,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
-	}
-
-	cards := ch.DBClient.Database("blog").Collection("cards")
-	_, err := cards.InsertOne(context.Background(), c)
+	})
 	if err != nil {
 		gctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	gctx.JSON(http.StatusOK, model.Response{
+	gctx.JSON(http.StatusOK, CreateCardResponse{
 		Status: "success",
+		ID:     result.InsertedID,
 	})
 }
 
 func (ch *Handler) Update(gctx *gin.Context) {
-	var req UpdateCardRequest
+	ctx := gctx.Request.Context()
+
+	var req CreateOrUpdateCardRequest
 	if err := gctx.ShouldBindJSON(&req); err != nil {
-		_ = gctx.Error(errors.New("error from map req"))
+		gctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	valid := ch.validateCardStatus(req)
+	if !valid {
+		gctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid card status"})
+		return
+	}
+
+	valid = ch.validateCardCategory(req)
+	if !valid {
+		gctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid card category"})
 		return
 	}
 
@@ -56,56 +113,78 @@ func (ch *Handler) Update(gctx *gin.Context) {
 	cardId := gctx.Param(key)
 
 	if cardId == "" {
-		gctx.JSON(http.StatusBadRequest, gin.H{"error": "empty card id"})
+		gctx.JSON(http.StatusBadRequest, gin.H{"error": "card oid to update can't be empty"})
 		return
 	}
 
-	c := model.Card{
-		Name:      req.Name,
-		Status:    req.Status,
-		Content:   req.Content,
-		Category:  req.Category,
-		Author:    req.Author,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+	oid, err := primitive.ObjectIDFromHex(cardId)
+	if err != nil {
+		gctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 	}
 
-	cards := ch.DBClient.Database("blog").Collection("cards")
-	_, err := cards.ReplaceOne(context.Background(), bson.M{"name": cardId}, c)
+	err = ch.verifyAuthor(ctx, gctx.GetString("author"), oid)
 	if err != nil {
 		gctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	gctx.JSON(http.StatusOK, model.Response{
+	updateCmd := bson.D{{"$set", bson.M{
+		"name":       req.Name,
+		"status":     req.Status,
+		"content":    req.Content,
+		"category":   req.Category,
+		"updated_at": time.Now(),
+	}}}
+
+	cards := ch.DBClient.Database("blog").Collection("cards")
+	_, err = cards.UpdateOne(ctx, bson.M{"_id": oid}, updateCmd)
+	if err != nil {
+		gctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	gctx.JSON(http.StatusOK, UpdateCardResponse{
 		Status: "success",
 	})
 }
 
 func (ch *Handler) Delete(gctx *gin.Context) {
+	ctx := gctx.Request.Context()
+
 	var key = "id"
 	cardId := gctx.Param(key)
 
 	if cardId == "" {
-		gctx.JSON(http.StatusBadRequest, gin.H{"error": "empty card id"})
+		gctx.JSON(http.StatusBadRequest, gin.H{"error": "card oid to delete can't be empty"})
+		return
+	}
+
+	oid, err := primitive.ObjectIDFromHex(cardId)
+	if err != nil {
+		gctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
 	cards := ch.DBClient.Database("blog").Collection("cards")
-	ret, err := cards.DeleteOne(context.Background(), bson.M{"name": cardId})
+	err = ch.verifyAuthor(ctx, gctx.GetString("author"), oid)
+	if err != nil {
+		gctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	ret, err := cards.DeleteOne(context.Background(), bson.M{"_id": oid})
 	if ret.DeletedCount == 0 {
 		gctx.JSON(http.StatusInternalServerError, gin.H{"error": "no items to delete"})
 		return
-
 	}
 
 	if err != nil {
 		gctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
-
 	}
 
-	gctx.JSON(http.StatusOK, model.Response{
+	gctx.JSON(http.StatusOK, DeleteCardResponse{
 		Status: "success",
+		ID:     oid,
 	})
 }

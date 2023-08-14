@@ -11,6 +11,13 @@ const (
 	CardStatusOrange CardStatus = "ORANGE"
 )
 
+var ValidCardStatuses = map[CardStatus]bool{
+	CardStatusGreen:  true,
+	CardStatusViolet: true,
+	CardStatusBlue:   true,
+	CardStatusOrange: true,
+}
+
 type CardCategory string
 
 const (
@@ -20,6 +27,13 @@ const (
 	CardCategorySoc  CardCategory = "SOCIOLOGY"
 )
 
+var ValidCardCategories = map[CardCategory]bool{
+	CardCategoryPhy:  true,
+	CardCategoryTech: true,
+	CardCategoryChem: true,
+	CardCategorySoc:  true,
+}
+
 type Card struct {
 	Name      string       `json:"name" bson:"name"`
 	Status    CardStatus   `json:"status" bson:"status"`
@@ -28,8 +42,4 @@ type Card struct {
 	Author    string       `json:"author" bson:"author"`
 	CreatedAt time.Time    `json:"createdAt" bson:"created_at"`
 	UpdatedAt time.Time    `json:"updatedAt" bson:"updated_at"`
-}
-
-type Response struct {
-	Status string `json:"status"`
 }
